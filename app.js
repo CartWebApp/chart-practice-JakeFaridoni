@@ -142,29 +142,24 @@ function scatterScoresVsSales(platform) {
 
 // DOUGHNUT — member vs casual share for one genre + year
 function doughnutRegionShare(year, platform) {
-  const row = chartData.find(r => r.year === year && r.platform === platform);
 
   // const regions = chartData.map(r => r.region);
   const totalRegions = chartData.map(r => r.region).length;
-  console.log(totalRegions);
-  
 
   const regionNA = (((chartData.filter(r => r.region === "NA").length) / totalRegions) * 100);
   const regionEU = (((chartData.filter(r => r.region === "EU").length) / totalRegions) * 100);
   const regionJP = (((chartData.filter(r => r.region === "JP").length) / totalRegions) * 100);
   const regionASIA = (((chartData.filter(r => r.region === "ASIA").length) / totalRegions) * 100);
-  console.log(regionASIA, regionEU, regionJP, regionNA, regionASIA + regionEU + regionJP + regionNA);
-
 
   return {
     type: "doughnut",
     data: {
       labels: ["NA (%)", "EU (%)", "JP (%)", "ASIA (%)"],
-      datasets: [{ label: "Rider mix", data: [regionNA, regionEU, regionJP, regionASIA] }]
+      datasets: [{ label: "region share mix", data: [regionNA, regionEU, regionJP, regionASIA] }]
     },
     options: {
       plugins: {
-        genre: { display: true, text: `Rider mix: ${platform} (${year})` }
+        title: { display: true, text: `Region share mix: ${platform} (${year})` }
       }
     }
   };
@@ -172,13 +167,26 @@ function doughnutRegionShare(year, platform) {
 
 // RADAR — compare neighborgenres across multiple metrics for one year
 function radarPublishersAcrossMetrics(year) {
-  const rows = chartData.filter(r => r.year === year);
+  const rows = chartData.filter(r => r.year === Number(year));
 
-  const metrics = ["trips", "revenueUSD", "avgDurationMin", "incidents"];
+  const metrics = ["priceUSD", "revenueUSD", "unitsM", "reviewScore"];
   const labels = metrics;
 
-  const datasets = rows.map(r => ({
-    label: r.genre,
+  const aggregatedMap = rows.reduce((acc, curr) => {
+    if(!acc[curr.publisher]) {
+      acc[curr.publisher] = {publisher: acc[curr.publisher], priceUSD: 0, revenueUSD: 0, unitsM: 0, reviewScore: 0};
+    }
+    acc[curr.publisher].revenueUSD += curr.revenueUSD;
+    acc[curr.publisher].unitsM += curr.unitsM;
+    return acc;
+  }, {});
+
+  const aggregatedByPub = Object.keys(aggregatedMap);
+
+  console.log(aggregatedByPub);
+
+  const datasets = aggregatedByPub.map(r => ({
+    label: r.publisher,
     data: metrics.map(m => r[m])
   }));
 
@@ -187,7 +195,7 @@ function radarPublishersAcrossMetrics(year) {
     data: { labels, datasets },
     options: {
       plugins: {
-        genre: { display: true, text: `Multi-metric comparison (${year})` }
+        title: { display: true, text: `Multi-metric comparison (${year})` }
       }
     }
   };
