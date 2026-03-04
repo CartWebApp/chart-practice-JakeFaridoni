@@ -90,12 +90,23 @@ function barBySales(platform, metric) {
 // Task B: LINE — trend over time for one neighborgenre (2 datasets)
 function lineSalesOverYears(platform, metrics) {
   const rows = chartData.filter(r => r.platform === platform);
+  console.log(rows);
 
-  const labels = rows.map(r => r.year);
+  const aggregatedMap = rows.reduce((acc, curr) => {
+    if(!acc[Number(curr.year)]) {
+      acc.year = {year: Number(curr.year), unitsM: 0};
+    }
+    acc[Number(curr.year)].unitsM += curr.unitsM;
+    return acc;
+  }, {});
+
+  const aggregatedByYear = Object.values(aggregatedMap);
+
+  const labels = aggregatedByYear.map(r => r.year);
 
   const datasets = metrics.map(m => ({
     label: m,
-    data: rows.map(r => r[m])
+    data: aggregatedByYear.map(r => r[m])
   }));
 
   return {
@@ -107,8 +118,8 @@ function lineSalesOverYears(platform, metrics) {
         title: { display: true, text: `Trends over time: ${platform}` }
       },
       scales: {
-        y: { genre: { display: true, text: "Value" } },
-        x: { genre: { display: true, text: "Year" } }
+        y: { title: { display: true, text: "Value" } },
+        x: { title: { display: true, text: "Year" } }
       }
     }
   };
@@ -174,14 +185,21 @@ function radarPublishersAcrossMetrics(year) {
 
   const aggregatedMap = rows.reduce((acc, curr) => {
     if(!acc[curr.publisher]) {
-      acc[curr.publisher] = {publisher: acc[curr.publisher], priceUSD: 0, revenueUSD: 0, unitsM: 0, reviewScore: 0};
+      acc[curr.publisher] = {publisher: curr.publisher, priceUSD: 0, revenueUSD: 0, unitsM: 0, reviewScore: 0, count: 0};
     }
+    acc[curr.publisher].priceUSD += curr.priceUSD; 
     acc[curr.publisher].revenueUSD += curr.revenueUSD;
     acc[curr.publisher].unitsM += curr.unitsM;
+    acc[curr.publisher].reviewScore += curr.reviewScore;
+    acc[curr.publisher].count += 1;
     return acc;
   }, {});
 
-  const aggregatedByPub = Object.keys(aggregatedMap);
+  const aggregatedByPub = Object.values(aggregatedMap).map(pub => ({
+    ...pub,
+    priceUSD: pub.priceUSD / pub.count,
+    reviewScore: pub.reviewScore / pub.count
+  }));
 
   console.log(aggregatedByPub);
 
